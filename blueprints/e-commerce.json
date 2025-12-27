@@ -1,0 +1,73 @@
+{
+  "title": "E-commerce Product Schema",
+  "type": "object",
+  "properties": {
+    "product_name": {
+      "type": "string",
+      "description": "The name/title of the product"
+    },
+    "price": {
+      "type": "number",
+      "description": "Current price of the product"
+    },
+    "currency": {
+      "type": "string",
+      "description": "Currency code (e.g., USD, EUR, GBP)",
+      "pattern": "^[A-Z]{3}$"
+    },
+    "original_price": {
+      "type": ["number", "null"],
+      "description": "Original/regular price if product is on sale"
+    },
+    "availability": {
+      "type": "string",
+      "enum": ["in_stock", "out_of_stock", "pre_order", "backorder"],
+      "description": "Product availability status"
+    },
+    "description": {
+      "type": "string",
+      "description": "Product description"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "description": "Array of product image URLs"
+    },
+    "brand": {
+      "type": ["string", "null"],
+      "description": "Product brand name"
+    },
+    "sku": {
+      "type": ["string", "null"],
+      "description": "Product SKU or identifier"
+    },
+    "rating": {
+      "type": ["number", "null"],
+      "description": "Product rating (typically 0-5)",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "review_count": {
+      "type": ["integer", "null"],
+      "description": "Number of reviews",
+      "minimum": 0
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Product categories/tags"
+    },
+    "specifications": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Additional product specifications (varies by product type)"
+    }
+  },
+  "required": ["product_name", "price", "currency", "availability"]
+}
+
