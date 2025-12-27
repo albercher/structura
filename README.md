@@ -91,11 +91,13 @@ The API will be available at `http://localhost:8000`
 
 ## Usage
 
-### API Endpoint
+### API Endpoints
+
+#### 1. Extract from URL
 
 **POST** `/extract`
 
-**Request Body:**
+**Request Body (JSON):**
 ```json
 {
   "url": "https://example.com/product-page",
@@ -103,6 +105,22 @@ The API will be available at `http://localhost:8000`
   "schema_version": "v1"
 }
 ```
+
+#### 2. Extract from File
+
+**POST** `/extract/file`
+
+**Request (multipart/form-data):**
+- `file`: The file to extract data from (required)
+- `domain`: Domain name (required)
+- `schema_version`: Schema version (optional, default: "v1")
+- `api_key`: API key for protected blueprints (optional)
+
+**Supported file types:**
+- Markdown: `.md`, `.markdown`
+- Text: `.txt`
+- HTML: `.html`, `.htm`
+- PDF: `.pdf` (requires `pdfplumber` or `pypdf` package)
 
 **Response:**
 ```json
@@ -145,6 +163,14 @@ curl -X POST "http://localhost:8000/extract" \
     "domain": "e-commerce",
     "schema_version": "v1"
   }'
+```
+
+**File upload with cURL:**
+```bash
+curl -X POST "http://localhost:8000/extract/file" \
+  -F "file=@document.pdf" \
+  -F "domain=e-commerce" \
+  -F "schema_version=v1"
 ```
 
 ### Example with Python

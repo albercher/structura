@@ -67,14 +67,16 @@ class ExtractionService:
         blueprint = await self.firebase_client.get_blueprint(domain, api_key)
         return blueprint, True  # True = premium domain
     
-    async def extract(self, url: str, domain: str, schema_version: str = "v1", api_key: Optional[str] = None) -> Dict[str, Any]:
+    async def extract(self, url: Optional[str] = None, domain: str = None, schema_version: str = "v1", api_key: Optional[str] = None, markdown_content: Optional[str] = None) -> Dict[str, Any]:
         """
-        Extract structured data from a URL.
+        Extract structured data from a URL or markdown content.
         
         Args:
-            url: URL to extract data from
+            url: URL to extract data from (optional if markdown_content is provided)
             domain: Domain name (determines blueprint schema)
             schema_version: Schema version (reserved for future use)
+            api_key: API key for protected blueprints
+            markdown_content: Pre-extracted markdown content (optional if url is provided)
             
         Returns:
             Extracted structured data as dictionary
@@ -87,12 +89,18 @@ class ExtractionService:
             logger.info(f"Loading blueprint for domain: {domain}")
             blueprint, is_premium = await self.load_blueprint(domain, schema_version, api_key)
             
-            # Step 2: Extract markdown from URL
-            logger.info(f"Extracting markdown from URL: {url}")
-            markdown = await self.extractor.extract_markdown(url)
+            # Step 2: Extract markdown from URL or use provided content
+            if markdown_content:
+                logger.info("Using provided markdown content")
+                markdown = markdown_content
+            elif url:
+                logger.info(f"Extracting markdown from URL: {url}")
+                markdown = await self.extractor.extract_markdown(url)
+            else:
+                raise ValueError("Either 'url' or 'markdown_content' must be provided")
             
             if not markdown or len(markdown.strip()) == 0:
-                raise ValueError("No content extracted from URL")
+                raise ValueError("No content extracted")
             
             # Step 3: Build prompt
             logger.info("Building extraction prompt")
