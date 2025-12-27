@@ -21,5 +21,5 @@ BLUEPRINTS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "bluep
 # Firebase configuration (for protected blueprints)
 FIREBASE_PROJECT_ID = os.getenv("FIREBASE_PROJECT_ID", "")
 FIREBASE_COLLECTION = os.getenv("FIREBASE_COLLECTION", "blueprints")
-FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "")  # Path to service account JSON file
+FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON", "")  # Service account JSON as string
 

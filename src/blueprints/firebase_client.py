@@ -1,12 +1,11 @@
 """Firebase client for protected blueprints."""
 import logging
 import json
-import os
 import asyncio
 from typing import Dict, Any, Optional
 import firebase_admin
 from firebase_admin import credentials, firestore
-from src.config import FIREBASE_PROJECT_ID, FIREBASE_COLLECTION, FIREBASE_CREDENTIALS_PATH
+from src.config import FIREBASE_PROJECT_ID, FIREBASE_COLLECTION, FIREBASE_CREDENTIALS_JSON
 
 logger = logging.getLogger(__name__)
 
@@ -17,44 +16,52 @@ _firebase_app = None
 class FirebaseBlueprintClient:
     """Client for fetching protected blueprints from Firebase Firestore."""
     
-    def __init__(self, project_id: str = None, collection: str = None):
+    def __init__(self, project_id: str = None, collection: str = None, credentials_json: str = None):
         """
         Initialize Firebase client.
         
         Args:
             project_id: Firebase project ID. If not provided, uses config default.
             collection: Firebase collection name. If not provided, uses config default.
+            credentials_json: Service account JSON as string. If not provided, uses config default.
         """
         self.project_id = project_id or FIREBASE_PROJECT_ID
         self.collection = collection or FIREBASE_COLLECTION
+        self.credentials_json = credentials_json or FIREBASE_CREDENTIALS_JSON
         
         if not self.project_id:
             raise ValueError("Firebase project ID is required. Set FIREBASE_PROJECT_ID environment variable.")
         if not self.collection:
             raise ValueError("Firebase collection is required. Set FIREBASE_COLLECTION environment variable.")
+        if not self.credentials_json:
+            raise ValueError(
+                "Firebase credentials are required. "
+                "Set FIREBASE_CREDENTIALS_JSON environment variable with your service account JSON."
+            )
         
         # Initialize Firebase Admin SDK
         self._init_firebase()
         self.db = firestore.client()
     
     def _init_firebase(self):
-        """Initialize Firebase Admin SDK."""
+        """Initialize Firebase Admin SDK with credentials from JSON string."""
         global _firebase_app
         
         if _firebase_app is None:
             try:
-                # Try to initialize with credentials file
-                creds_path = FIREBASE_CREDENTIALS_PATH
-                if creds_path and os.path.exists(creds_path):
-                    cred = credentials.Certificate(creds_path)
+                import json
+                
+                # Parse and use credentials from JSON string
+                try:
+                    cred_dict = json.loads(self.credentials_json)
+                    cred = credentials.Certificate(cred_dict)
                     _firebase_app = firebase_admin.initialize_app(cred, {
                         'projectId': self.project_id
                     })
-                    logger.info("Firebase initialized with credentials file")
-                else:
-                    # Try to use default credentials (for deployed environments)
-                    _firebase_app = firebase_admin.initialize_app()
-                    logger.info("Firebase initialized with default credentials")
+                    logger.info("Firebase initialized with credentials from FIREBASE_CREDENTIALS_JSON")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse FIREBASE_CREDENTIALS_JSON: {str(e)}")
+                    raise ValueError(f"Invalid JSON in FIREBASE_CREDENTIALS_JSON: {str(e)}")
             except Exception as e:
                 logger.error(f"Failed to initialize Firebase: {str(e)}")
                 raise ValueError(f"Failed to initialize Firebase: {str(e)}")
@@ -84,17 +91,25 @@ class FirebaseBlueprintClient:
             raise ValueError(f"Access denied to blueprint '{domain}'. Invalid API key.")
         
         # Extract blueprint schema
-        # Assuming blueprint is stored in a 'schema' field
+        # Schema must be stored as a JSON string in the 'schema' field
         if 'schema' in data:
-            if isinstance(data['schema'], str):
-                return json.loads(data['schema'])
-            elif isinstance(data['schema'], dict):
-                return data['schema']
+            schema_value = data['schema']
+            if isinstance(schema_value, str):
+                try:
+                    return json.loads(schema_value)
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON in schema field for '{domain}': {str(e)}")
             else:
-                raise ValueError(f"Invalid blueprint schema format for '{domain}'")
+                raise ValueError(
+                    f"Schema for '{domain}' must be stored as a JSON string. "
+                    f"Found type: {type(schema_value).__name__}. "
+                    f"Please store the schema as a JSON string in the 'schema' field."
+                )
         else:
-            # If schema is not in a 'schema' field, return the whole document
-            return data
+            raise ValueError(
+                f"Blueprint '{domain}' is missing 'schema' field. "
+                f"Please add a 'schema' field containing the JSON schema as a string."
+            )
     
     async def get_blueprint(self, domain: str, api_key: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -133,12 +148,15 @@ class FirebaseBlueprintClient:
         """
         Validate API key has access to the requested blueprint.
         
-        TODO: Implement proper API key validation logic.
-        This could check:
-        - API key exists in a 'api_keys' collection
-        - API key has access to this specific domain
-        - API key is not expired
-        - API key usage limits
+        Checks the 'api_keys' collection in Firestore to verify:
+        - API key exists
+        - API key is active
+        - API key has access to the requested domain (or '*' for all domains)
+        
+        Future enhancements could include:
+        - Expiration date checking
+        - Rate limiting
+        - Usage tracking
         
         Args:
             api_key: API key to validate
@@ -147,12 +165,6 @@ class FirebaseBlueprintClient:
         Returns:
             True if API key is valid and has access, False otherwise
         """
-        # TODO: Implement proper validation
-        # For now, this is a placeholder that always returns True
-        # You should:
-        # 1. Check if api_key exists in your api_keys collection
-        # 2. Check if the key has access to this domain
-        # 3. Check rate limits, expiration, etc.
         try:
             # Example: Check if API key exists and has access
             key_ref = self.db.collection('api_keys').document(api_key)

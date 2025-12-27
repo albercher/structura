@@ -1,6 +1,6 @@
 """FastAPI application main file."""
 import logging
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
 from typing import Optional
@@ -49,12 +49,22 @@ class ExtractResponse(BaseModel):
 
 
 @app.post("/extract", response_model=ExtractResponse)
-async def extract(request: ExtractRequest):
+async def extract(
+    request: ExtractRequest,
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key")
+):
     """
     Extract structured data from a URL.
     
+    API key can be provided in two ways:
+    1. In request body: `{"api_key": "..."}`
+    2. In header: `X-API-Key: ...` (recommended for RapidAPI)
+    
+    Header takes precedence if both are provided.
+    
     Args:
         request: ExtractRequest containing url, domain, and schema_version
+        x_api_key: API key from X-API-Key header (optional)
         
     Returns:
         ExtractResponse with extracted data
@@ -63,12 +73,15 @@ async def extract(request: ExtractRequest):
         # Convert HttpUrl to string
         url_str = str(request.url)
         
+        # Use header API key if provided, otherwise use body API key
+        api_key = x_api_key or request.api_key
+        
         # Extract data
         extracted_data = await extraction_service.extract(
             url=url_str,
             domain=request.domain,
             schema_version=request.schema_version,
-            api_key=request.api_key
+            api_key=api_key
         )
         
         return ExtractResponse(

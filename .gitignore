@@ -27,6 +27,11 @@ wheels/
 .env
 .env.local
 
+# Firebase credentials (if using JSON file - deprecated, use .env instead)
+serviceAccountKey.json
+firebase-credentials.json
+*serviceAccount*.json
+
 # IDE
 .vscode/
 .idea/

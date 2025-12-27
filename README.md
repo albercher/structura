@@ -55,6 +55,8 @@ cp .env.example .env
 
 Edit `.env` and add your configuration:
 
+**Note**: For protected blueprints (premium domains), you'll need Firebase setup. See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed instructions.
+
 **For OpenAI (default):**
 ```
 OPENAI_API_KEY=your_openai_api_key_here
@@ -179,8 +181,9 @@ Protected blueprints (medical, legal, finance, etc.) are available exclusively t
 
 **Using Protected Blueprints:**
 
-Include an `api_key` in your request:
+API key can be provided in two ways:
 
+**Option 1: Request Body (JSON)**
 ```json
 {
   "url": "https://example.com/medical-report",
@@ -189,6 +192,24 @@ Include an `api_key` in your request:
   "api_key": "your_api_key_here"
 }
 ```
+
+**Option 2: Header (Recommended for RapidAPI)**
+```bash
+curl -X POST "https://your-api.com/extract" \
+  -H "X-API-Key: your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/medical-report",
+    "domain": "medical",
+    "schema_version": "v1"
+  }'
+```
+
+**Note:** If both header and body provide an API key, the header value takes precedence.
+
+**Setting Up Firebase for Protected Blueprints:**
+
+See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for complete setup instructions.
 
 ### Creating New Blueprints
 
