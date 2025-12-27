@@ -307,9 +307,32 @@ Error responses include a message:
 
 ## Development
 
-<!-- ### Running Tests
+### Running Tests
 
-(Add test instructions as tests are added) -->
+Install test dependencies (already included in requirements.txt):
+```bash
+python -m pip install -r requirements.txt
+```
+
+Run all tests:
+```bash
+pytest
+```
+
+Run tests with verbose output:
+```bash
+pytest -v
+```
+
+Run a specific test file:
+```bash
+pytest tests/test_api.py
+```
+
+Run a specific test:
+```bash
+pytest tests/test_api.py::TestHealthEndpoint::test_health_endpoint
+```
 
 ### Adding New Domains
 

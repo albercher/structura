@@ -146,7 +146,7 @@ async def extract_from_file(
         final_api_key = x_api_key or api_key
         
         # Extract markdown from file
-        logger.info(f"Extracting content from uploaded file: {file.filename}")
+        logging.info(f"Extracting content from uploaded file: {file.filename}")
         markdown_content = await file_extractor.extract_markdown(file)
         
         # Extract structured data

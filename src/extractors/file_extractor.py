@@ -58,6 +58,12 @@ class FileExtractor:
                 logger.warning(f"Unknown file extension '{file_extension}', attempting to decode as text")
                 try:
                     text = content.decode('utf-8')
+                    # If decoding succeeds but results in mostly non-printable characters, it's likely binary
+                    if len(text.strip()) == 0 or not any(c.isprintable() for c in text[:100]):
+                        raise ValueError(
+                            f"Unsupported file type: '{file_extension}'. "
+                            f"Supported types: .md, .markdown, .txt, .html, .htm, .pdf"
+                        )
                     return text
                 except UnicodeDecodeError:
                     raise ValueError(
