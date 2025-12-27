@@ -1,7 +1,7 @@
 """Main service for extracting structured data from URLs."""
 import json
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 
 from src.extractors.firecrawl_extractor import FirecrawlExtractor
 from src.prompts.prompt_builder import PromptBuilder
@@ -9,6 +9,7 @@ from src.llm.openai_client import OpenAIClient
 from src.validators.schema_validator import SchemaValidator
 from src.blueprints.open_blueprints import get_open_blueprint, is_open_blueprint
 from src.blueprints.firebase_client import FirebaseBlueprintClient
+from src.config import LLM_MODEL, LLM_MODEL_PREMIUM
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class ExtractionService:
     def __init__(self):
         """Initialize the extraction service with all required components."""
         self.extractor = FirecrawlExtractor()
-        self.llm_client = OpenAIClient()
+        # LLM client will be created per-request with appropriate model
         self.prompt_builder = PromptBuilder()
         self.validator = SchemaValidator()
         self.firebase_client = None
@@ -29,7 +30,7 @@ class ExtractionService:
             # Firebase not configured - that's okay, protected blueprints won't be available
             logger.info("Firebase not configured - protected blueprints will not be available")
     
-    async def load_blueprint(self, domain: str, schema_version: str = "v1", api_key: Optional[str] = None) -> Dict[str, Any]:
+    async def load_blueprint(self, domain: str, schema_version: str = "v1", api_key: Optional[str] = None) -> Tuple[Dict[str, Any], bool]:
         """
         Load blueprint schema for a domain.
         
@@ -41,18 +42,20 @@ class ExtractionService:
             api_key: API key for accessing protected blueprints (required for protected domains)
             
         Returns:
-            Blueprint schema as dictionary
+            Tuple of (blueprint schema, is_premium)
+            - is_premium: True if blueprint is from Firebase (premium), False if from blueprints directory (standard)
             
         Raises:
             ValueError: If blueprint not found or access denied
             KeyError: If domain is not in open source blueprints
         """
-        # Check if it's an open source blueprint
+        # Check if it's an open source blueprint (standard domain)
         if is_open_blueprint(domain):
             logger.info(f"Loading open source blueprint for domain: {domain}")
-            return get_open_blueprint(domain)
+            blueprint = get_open_blueprint(domain)
+            return blueprint, False  # False = standard domain
         
-        # Otherwise, try to fetch from protected blueprints (Firebase)
+        # Otherwise, try to fetch from protected blueprints (Firebase) - premium domain
         if not self.firebase_client:
             raise ValueError(
                 f"Protected blueprint '{domain}' requires Firebase configuration. "
@@ -61,7 +64,8 @@ class ExtractionService:
             )
         
         logger.info(f"Loading protected blueprint for domain: {domain}")
-        return await self.firebase_client.get_blueprint(domain, api_key)
+        blueprint = await self.firebase_client.get_blueprint(domain, api_key)
+        return blueprint, True  # True = premium domain
     
     async def extract(self, url: str, domain: str, schema_version: str = "v1", api_key: Optional[str] = None) -> Dict[str, Any]:
         """
@@ -79,9 +83,9 @@ class ExtractionService:
             Exception: If extraction fails at any stage
         """
         try:
-            # Step 1: Load blueprint schema
+            # Step 1: Load blueprint schema and determine if it's premium
             logger.info(f"Loading blueprint for domain: {domain}")
-            blueprint = await self.load_blueprint(domain, schema_version, api_key)
+            blueprint, is_premium = await self.load_blueprint(domain, schema_version, api_key)
             
             # Step 2: Extract markdown from URL
             logger.info(f"Extracting markdown from URL: {url}")
@@ -95,8 +99,11 @@ class ExtractionService:
             prompt = self.prompt_builder.build_extraction_prompt(markdown, blueprint, domain)
             
             # Step 4: Extract structured data using LLM
-            logger.info("Extracting structured data using LLM")
-            extracted_data = await self.llm_client.extract_structured_data(prompt)
+            # Use deepseek-v3 for premium domains, gpt-4o-mini for standard domains
+            model = LLM_MODEL_PREMIUM if is_premium else LLM_MODEL
+            logger.info(f"Extracting structured data using LLM model: {model} (premium: {is_premium})")
+            llm_client = OpenAIClient(model=model)
+            extracted_data = await llm_client.extract_structured_data(prompt)
             
             # Step 5: Validate against schema
             logger.info("Validating extracted data against schema")
