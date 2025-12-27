@@ -241,9 +241,9 @@ Error responses include a message:
 
 ## Development
 
-### Running Tests
+<!-- ### Running Tests
 
-(Add test instructions as tests are added)
+(Add test instructions as tests are added) -->
 
 ### Adding New Domains
 
@@ -253,9 +253,13 @@ Error responses include a message:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Structura is an **Open Core** project.
+
+- **Core Engine:** The scraper engine, FastAPI wrapper, and E-commerce blueprint are licensed under the **MIT License**. You are free to host, modify, and use these for any purpose.
+- **Enterprise Blueprints:** Specialized high-accuracy blueprints (Medical, Legal, Finance) are proprietary and available exclusively through the [Structura Cloud API](https://rapidapi.com/your-link).
 
 ## Contributing
+
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 **How to contribute:**
