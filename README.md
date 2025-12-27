@@ -37,6 +37,14 @@ A service that extracts structured data from URLs using Firecrawl and LLM. Conve
 pip install -r requirements.txt
 ```
 
+### 1a. (Optional) Install Ollama for Local Development
+
+If you want to use Ollama instead of OpenAI for local development/testing:
+
+1. **Install Ollama**: Visit [https://ollama.ai](https://ollama.ai) and install Ollama
+2. **Pull a model**: Run `ollama pull llama3.2` (or another model)
+3. **Start Ollama**: Ollama runs automatically after installation, or start it with `ollama serve`
+
 ### 2. Configure Environment Variables
 
 Copy `.env.example` to `.env` and fill in your API keys:
@@ -45,10 +53,18 @@ Copy `.env.example` to `.env` and fill in your API keys:
 cp .env.example .env
 ```
 
-Edit `.env` and add your OpenAI API key (required):
+Edit `.env` and add your configuration:
 
+**For OpenAI (default):**
 ```
 OPENAI_API_KEY=your_openai_api_key_here
+```
+
+**For Ollama (local development):**
+```
+OPENAI_BASE_URL=http://localhost:11434/v1
+OPENAI_API_KEY=ollama
+LLM_MODEL=llama3.2
 ```
 
 Optionally add Firecrawl API key if using their cloud service:
