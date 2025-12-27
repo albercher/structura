@@ -1,14 +1,14 @@
 """Main service for extracting structured data from URLs."""
 import json
 import logging
-from typing import Dict, Any
-from pathlib import Path
+from typing import Dict, Any, Optional
 
 from src.extractors.firecrawl_extractor import FirecrawlExtractor
 from src.prompts.prompt_builder import PromptBuilder
 from src.llm.openai_client import OpenAIClient
 from src.validators.schema_validator import SchemaValidator
-from src.config import BLUEPRINTS_DIR
+from src.blueprints.open_blueprints import get_open_blueprint, is_open_blueprint
+from src.blueprints.firebase_client import FirebaseBlueprintClient
 
 logger = logging.getLogger(__name__)
 
@@ -22,39 +22,48 @@ class ExtractionService:
         self.llm_client = OpenAIClient()
         self.prompt_builder = PromptBuilder()
         self.validator = SchemaValidator()
+        self.firebase_client = None
+        try:
+            self.firebase_client = FirebaseBlueprintClient()
+        except ValueError:
+            # Firebase not configured - that's okay, protected blueprints won't be available
+            logger.info("Firebase not configured - protected blueprints will not be available")
     
-    def load_blueprint(self, domain: str, schema_version: str = "v1") -> Dict[str, Any]:
+    async def load_blueprint(self, domain: str, schema_version: str = "v1", api_key: Optional[str] = None) -> Dict[str, Any]:
         """
         Load blueprint schema for a domain.
         
+        Checks open source blueprints first, then protected blueprints from Firebase.
+        
         Args:
-            domain: Domain name (e.g., "e-commerce")
+            domain: Domain name (e.g., "e-commerce", "medical", "legal")
             schema_version: Schema version (currently not used, but reserved for future)
+            api_key: API key for accessing protected blueprints (required for protected domains)
             
         Returns:
             Blueprint schema as dictionary
             
         Raises:
-            FileNotFoundError: If blueprint file doesn't exist
-            ValueError: If blueprint JSON is invalid
+            ValueError: If blueprint not found or access denied
+            KeyError: If domain is not in open source blueprints
         """
-        # Convert domain to filename (e.g., "e-commerce" -> "e-commerce.json")
-        blueprint_file = Path(BLUEPRINTS_DIR) / f"{domain}.json"
+        # Check if it's an open source blueprint
+        if is_open_blueprint(domain):
+            logger.info(f"Loading open source blueprint for domain: {domain}")
+            return get_open_blueprint(domain)
         
-        if not blueprint_file.exists():
-            raise FileNotFoundError(
-                f"Blueprint not found for domain '{domain}'. "
-                f"Expected file: {blueprint_file}"
+        # Otherwise, try to fetch from protected blueprints (Firebase)
+        if not self.firebase_client:
+            raise ValueError(
+                f"Protected blueprint '{domain}' requires Firebase configuration. "
+                f"Set FIREBASE_PROJECT_ID and FIREBASE_COLLECTION environment variables, "
+                f"or use an open source blueprint (e.g., 'e-commerce')."
             )
         
-        try:
-            with open(blueprint_file, "r", encoding="utf-8") as f:
-                blueprint = json.load(f)
-            return blueprint
-        except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in blueprint file {blueprint_file}: {str(e)}")
+        logger.info(f"Loading protected blueprint for domain: {domain}")
+        return await self.firebase_client.get_blueprint(domain, api_key)
     
-    async def extract(self, url: str, domain: str, schema_version: str = "v1") -> Dict[str, Any]:
+    async def extract(self, url: str, domain: str, schema_version: str = "v1", api_key: Optional[str] = None) -> Dict[str, Any]:
         """
         Extract structured data from a URL.
         
@@ -72,7 +81,7 @@ class ExtractionService:
         try:
             # Step 1: Load blueprint schema
             logger.info(f"Loading blueprint for domain: {domain}")
-            blueprint = self.load_blueprint(domain, schema_version)
+            blueprint = await self.load_blueprint(domain, schema_version, api_key)
             
             # Step 2: Extract markdown from URL
             logger.info(f"Extracting markdown from URL: {url}")

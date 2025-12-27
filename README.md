@@ -165,11 +165,30 @@ print(data["data"])
 
 ## Blueprints
 
-Blueprints are JSON schemas that define the expected structure for each domain. They are stored in the `blueprints/` directory.
+Blueprints are JSON schemas that define the expected structure for each domain.
 
-### Current Blueprints
+### Open Source Blueprints
 
-- **e-commerce.json**: Product information extraction (name, price, availability, images, etc.)
+These blueprints are available in the public repository:
+
+- **e-commerce**: Product information extraction (name, price, availability, images, etc.)
+
+### Protected Blueprints
+
+Protected blueprints (medical, legal, finance, etc.) are available exclusively through the [Structura Cloud API](https://rapidapi.com/your-link) and require an API key. These are stored in Firebase and accessed via authentication.
+
+**Using Protected Blueprints:**
+
+Include an `api_key` in your request:
+
+```json
+{
+  "url": "https://example.com/medical-report",
+  "domain": "medical",
+  "schema_version": "v1",
+  "api_key": "your_api_key_here"
+}
+```
 
 ### Creating New Blueprints
 

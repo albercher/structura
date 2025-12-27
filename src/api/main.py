@@ -38,6 +38,7 @@ class ExtractRequest(BaseModel):
     url: HttpUrl
     domain: str
     schema_version: Optional[str] = "v1"
+    api_key: Optional[str] = None  # Required for protected blueprints
 
 
 class ExtractResponse(BaseModel):
@@ -66,7 +67,8 @@ async def extract(request: ExtractRequest):
         extracted_data = await extraction_service.extract(
             url=url_str,
             domain=request.domain,
-            schema_version=request.schema_version
+            schema_version=request.schema_version,
+            api_key=request.api_key
         )
         
         return ExtractResponse(
