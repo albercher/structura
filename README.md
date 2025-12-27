@@ -251,11 +251,20 @@ Error responses include a message:
 2. Test with sample URLs from that domain
 3. Adjust prompts if needed in `src/prompts/prompt_builder.py`
 
-<!-- ## License
+## License
 
-(Add license information)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contributing
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-(Add contribution guidelines)
- -->
+**How to contribute:**
+1. **Report Bugs:** Open an issue with a clear description and steps to reproduce.
+2. **Add Blueprints:** We are always looking for new domain schemas (Legal, Finance, etc.).
+3. **Submit a PR:** - Fork the Project
+   - Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+   - Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+   - Push to the Branch (`git push origin feature/AmazingFeature`)
+   - Open a Pull Request
+
+*Note: As this is a side project, please allow 1-2 weeks for PR reviews.*
